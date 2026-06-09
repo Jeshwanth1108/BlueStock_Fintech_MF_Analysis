@@ -1,26 +1,40 @@
-from sqlalchemy import create_engine
 import pandas as pd
+import os
 
-engine = create_engine(
-    "sqlite:///bluestock_mf.db"
+INPUT_FILE = "../data/raw/10_benchmark_indices.csv"
+OUTPUT_FILE = "../data/processed/benchmark_indices_clean.csv"
+
+df = pd.read_csv(INPUT_FILE)
+
+print("="*60)
+print("DATA CLEANING")
+print("="*60)
+
+print("Original Shape:", df.shape)
+
+# Remove duplicates
+duplicates = df.duplicated().sum()
+print("Duplicates:", duplicates)
+
+df = df.drop_duplicates()
+
+# Trim text columns
+text_cols = df.select_dtypes(include="object").columns
+
+for col in text_cols:
+    df[col] = df[col].astype(str).str.strip()
+
+# Missing values
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+# Save
+os.makedirs("../data/processed", exist_ok=True)
+
+df.to_csv(
+    OUTPUT_FILE,
+    index=False
 )
 
-tables = [
-    "fund_master",
-    "nav_history",
-    "investor_transactions",
-    "scheme_performance"
-]
-
-for table in tables:
-
-    query = f"""
-    SELECT COUNT(*)
-    as rows
-    FROM {table}
-    """
-
-    print(
-        table,
-        pd.read_sql(query, engine)
-    )
+print("\nSaved:", OUTPUT_FILE)
+print("Final Shape:", df.shape)
